@@ -620,10 +620,24 @@ def build():
            fill=GRAY)
 
     out = img.resize((1024, 1024), Image.LANCZOS)
-    # In the grader the repo is read-only: write the poster to
-    # MAKEFUN_OUTPUT_DIR when it is set, else next to this script.
-    out_dir = Path(os.environ.get("MAKEFUN_OUTPUT_DIR", HERE))
-    out.save(out_dir / "entry.png")
+    # In the grader the repo is read-only, so the poster must go to the
+    # output directory, never next to this script. MAKEFUN_OUTPUT_DIR
+    # wins when it is set; otherwise the grader's documented /output.
+    # (Entry 3 failed because the old default was HERE: without the
+    # variable, the save died with PermissionError in the read-only
+    # repo. main.ts also sets the variable before running this script,
+    # so the two can never disagree.)
+    out_dir = Path(os.environ.get("MAKEFUN_OUTPUT_DIR") or "/output")
+    try:
+        out_dir.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        pass
+    try:
+        out.save(out_dir / "entry.png")
+    except OSError:
+        # Last resort for local runs where /output is unavailable.
+        print("warning: could not save to output dir, saving next to script")
+        out.save(HERE / "entry.png")
     print(f"saved entry.png {out.size[0]}x{out.size[1]}")
 
 

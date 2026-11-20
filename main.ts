@@ -2,8 +2,9 @@
 //
 // This program builds the poster and hands the finished image to the
 // grader. It runs build_poster.py (PIL, deterministic: fixed seed, no
-// timestamps), checks that entry.png was produced, and copies it to the
-// output directory when MAKEFUN_OUTPUT_DIR is set. Nothing here touches
+// timestamps), checks that entry.png was produced, and makes sure it
+// lands in the output directory (MAKEFUN_OUTPUT_DIR when set, else
+// /output). Nothing here touches
 // the network or the clock, so two runs produce the same bytes.
 
 import { spawnSync } from "node:child_process";
@@ -40,9 +41,15 @@ if (data.dateCheck.length !== 11) {
   fail(`expected 11 DATE CHECK items, got ${data.dateCheck.length}`);
 }
 
-const result = spawnSync("python3", ["build_poster.py"], {
-  stdio: "inherit",
-});
+ // Decide the output directory HERE and hand it to the builder, so the
+ // two files can never disagree: MAKEFUN_OUTPUT_DIR wins when set,
+ // otherwise the grader's documented /output. (Entry 3 failed because
+ // build_poster.py defaulted to the read-only repo dir when the
+ // variable was unset.)
+ const result = spawnSync("python3", ["build_poster.py"], {
+   stdio: "inherit",
+   env: { ...process.env, MAKEFUN_OUTPUT_DIR: OUTPUT_DIR },
+ });
 if (result.error) {
   fail(`could not run build_poster.py: ${result.error.message}`);
 }
@@ -50,17 +57,14 @@ if (result.status !== 0) {
   fail(`build_poster.py exited with status ${result.status}`);
 }
 
-// build_poster.py writes entry.png to MAKEFUN_OUTPUT_DIR when it is set
-// (the grader's /output, the only writable directory there), else next
-// to this script. Look for it where the builder put it.
-const builtPath = process.env.MAKEFUN_OUTPUT_DIR
-  ? join(OUTPUT_DIR, ENTRY)
-  : ENTRY;
+// build_poster.py writes entry.png to the output directory (see the
+// spawn above). Look for it there.
+const builtPath = join(OUTPUT_DIR, ENTRY);
 
 if (!existsSync(builtPath)) {
-  // Fallback: the builder may have written next to the script instead;
-  // copy it over when that copy exists.
-  if (process.env.MAKEFUN_OUTPUT_DIR && existsSync(ENTRY)) {
+  // Fallback: the builder may have written next to the script instead
+  // (its last-resort path); copy it over when that copy exists.
+  if (existsSync(ENTRY)) {
     try {
       copyFileSync(ENTRY, builtPath);
     } catch (err) {
