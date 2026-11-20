@@ -50,20 +50,29 @@ if (result.status !== 0) {
   fail(`build_poster.py exited with status ${result.status}`);
 }
 
-if (!existsSync(ENTRY)) {
-  fail(`build finished but ${ENTRY} is missing`);
-}
-const size = statSync(ENTRY).size;
-if (size === 0) {
-  fail(`${ENTRY} is empty`);
-}
+// build_poster.py writes entry.png to MAKEFUN_OUTPUT_DIR when it is set
+// (the grader's /output, the only writable directory there), else next
+// to this script. Look for it where the builder put it.
+const builtPath = process.env.MAKEFUN_OUTPUT_DIR
+  ? join(OUTPUT_DIR, ENTRY)
+  : ENTRY;
 
-if (process.env.MAKEFUN_OUTPUT_DIR) {
-  try {
-    copyFileSync(ENTRY, join(OUTPUT_DIR, ENTRY));
-  } catch (err) {
-    fail(`could not copy ${ENTRY} to ${OUTPUT_DIR}: ${(err as Error).message}`);
+if (!existsSync(builtPath)) {
+  // Fallback: the builder may have written next to the script instead;
+  // copy it over when that copy exists.
+  if (process.env.MAKEFUN_OUTPUT_DIR && existsSync(ENTRY)) {
+    try {
+      copyFileSync(ENTRY, builtPath);
+    } catch (err) {
+      fail(`could not copy ${ENTRY} to ${OUTPUT_DIR}: ${(err as Error).message}`);
+    }
+  } else {
+    fail(`build finished but ${builtPath} is missing`);
   }
 }
+const size = statSync(builtPath).size;
+if (size === 0) {
+  fail(`${builtPath} is empty`);
+}
 
-console.log(`poster built: ${ENTRY} (${size} bytes)`);
+console.log(`poster built: ${builtPath} (${size} bytes)`);

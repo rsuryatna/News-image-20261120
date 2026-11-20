@@ -7,6 +7,7 @@ fixed seed, no timestamps, no network, no random placement without the seed.
 """
 import json
 import math
+import os
 import random
 from pathlib import Path
 
@@ -619,7 +620,10 @@ def build():
            fill=GRAY)
 
     out = img.resize((1024, 1024), Image.LANCZOS)
-    out.save(HERE / "entry.png")
+    # In the grader the repo is read-only: write the poster to
+    # MAKEFUN_OUTPUT_DIR when it is set, else next to this script.
+    out_dir = Path(os.environ.get("MAKEFUN_OUTPUT_DIR", HERE))
+    out.save(out_dir / "entry.png")
     print(f"saved entry.png {out.size[0]}x{out.size[1]}")
 
 
