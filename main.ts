@@ -1,33 +1,69 @@
-// News-image-20261120 entry: a one-page newspaper front page summing up the
-// world's news of Friday 20 November 2026.
+// Entry program for the news-image-20261120 bounty (v2 poster).
 //
-// The poster itself is embedded in image-data.ts as one base64 line. This
-// program only decodes it and writes it to entry.png, so every run produces
-// byte-identical output: no network, no clock, and no randomness anywhere in
-// this path. The poster was drawn from scratch with PIL (see build_poster.py):
-// 36 verified stories of the day, 13 featured with original illustrations,
-// a world map with numbered pins, 23 numbered briefs, a six-number stat strip,
-// and a date-check box naming the Thursday 19 November stories left off the
-// page. Every featured story carries its time stamp and a REPORTED tag.
-//
-// Outside the grader's container, MAKEFUN_OUTPUT_DIR stands in for /output:
-//   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
-import { Buffer } from "node:buffer";
-import { mkdirSync, writeFileSync } from "node:fs";
+// This program builds the poster and hands the finished image to the
+// grader. It runs build_poster.py (PIL, deterministic: fixed seed, no
+// timestamps), checks that entry.png was produced, and copies it to the
+// output directory when MAKEFUN_OUTPUT_DIR is set. Nothing here touches
+// the network or the clock, so two runs produce the same bytes.
+
+import { spawnSync } from "node:child_process";
+import { copyFileSync, existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-import { ENTRY_PNG_BASE64 } from "./image-data.ts";
+const OUTPUT_DIR = process.env.MAKEFUN_OUTPUT_DIR ?? "/output";
+const ENTRY = "entry.png";
 
-const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? "/output";
-const png = Buffer.from(ENTRY_PNG_BASE64, "base64");
-
-// The PNG signature, as a cheap guard against a corrupted payload: a real
-// PNG always starts with these eight bytes. The embedded poster is 1024x1024
-// and under 1 MiB, as the bounty requires.
-const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-if (png.length === 0 || !png.subarray(0, 8).equals(PNG_SIGNATURE)) {
-  throw new Error("embedded poster is not a valid PNG");
+function fail(message: string): never {
+  console.error(`news-image-20261120: ${message}`);
+  process.exit(1);
 }
 
-mkdirSync(outDir, { recursive: true });
-writeFileSync(join(outDir, "entry.png"), png);
+// The poster must carry exactly 36 stories: 13 featured, 23 briefs.
+// image-data.ts holds the DATA literal as strict JSON, so read it as text
+// and parse it here instead of importing the module (keeps this entry
+// point free of cross-module TypeScript imports).
+const dataText = readFileSync("image-data.ts", "utf-8");
+const anchor = dataText.indexOf("export const DATA");
+const jsonStart = dataText.indexOf("{", anchor);
+const jsonEnd = dataText.lastIndexOf("}") + 1;
+const data = JSON.parse(dataText.slice(jsonStart, jsonEnd)) as {
+  featured: unknown[];
+  briefs: unknown[];
+  dateCheck: unknown[];
+};
+if (data.featured.length !== 13 || data.briefs.length !== 23) {
+  fail(
+    `expected 13 featured + 23 briefs, got ${data.featured.length} + ${data.briefs.length}`,
+  );
+}
+if (data.dateCheck.length !== 11) {
+  fail(`expected 11 DATE CHECK items, got ${data.dateCheck.length}`);
+}
+
+const result = spawnSync("python3", ["build_poster.py"], {
+  stdio: "inherit",
+});
+if (result.error) {
+  fail(`could not run build_poster.py: ${result.error.message}`);
+}
+if (result.status !== 0) {
+  fail(`build_poster.py exited with status ${result.status}`);
+}
+
+if (!existsSync(ENTRY)) {
+  fail(`build finished but ${ENTRY} is missing`);
+}
+const size = statSync(ENTRY).size;
+if (size === 0) {
+  fail(`${ENTRY} is empty`);
+}
+
+if (process.env.MAKEFUN_OUTPUT_DIR) {
+  try {
+    copyFileSync(ENTRY, join(OUTPUT_DIR, ENTRY));
+  } catch (err) {
+    fail(`could not copy ${ENTRY} to ${OUTPUT_DIR}: ${(err as Error).message}`);
+  }
+}
+
+console.log(`poster built: ${ENTRY} (${size} bytes)`);
