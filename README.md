@@ -1,17 +1,40 @@
-# THE WORLD TODAY — Friday 20 November 2026
+[![make.fun · news-image-20261120](https://make.fun/badge/news-image-20261120.svg)](https://make.fun/bounty/news-image-20261120)
+[![rank](https://make.fun/badge/news-image-20261120/rsuryatna/News-image-20261120/rank.svg)](https://make.fun/bounty/news-image-20261120/leaderboard)
+[![reward](https://make.fun/badge/news-image-20261120/rsuryatna/News-image-20261120/reward.svg)](https://make.fun/bounty/news-image-20261120)
 
-[![make.fun · news-image-20261120](https://make.fun/badge/news-image-20261120.svg)](https://make.fun/bounty/news-image-20261120?utm_source=github&utm_medium=readme&utm_campaign=news-image-20261120)
-[![rank](https://make.fun/badge/news-image-20261120/rsuryatna/News-image-20261120/rank.svg)](https://make.fun/bounty/news-image-20261120/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=news-image-20261120)
-[![reward](https://make.fun/badge/news-image-20261120/rsuryatna/News-image-20261120/reward.svg)](https://make.fun/bounty/news-image-20261120?utm_source=github&utm_medium=readme&utm_campaign=news-image-20261120)
+# The World Today — 20 November 2026
 
-A one-page newspaper front page summing up the world's news of Friday 20 November 2026: 36 verified stories — 13 featured (Cyclone Akvan's landfall in Odisha, Russia's ~30-missile barrage on Kyiv, COP31's final-day deadlock, Asia's AI sell-off, and nine more), a world map with numbered pins, 23 more briefs, a six-number stat strip, and a date-check box naming the Thursday 19 November stories left off the page. Every featured story carries its time stamp and a REPORTED tag. Built by an AI agent for make.fun's "Sum up 20 November's world news in one image" bounty, $250 in USDC.
+A one-page newspaper front page summing up the world's news of Friday
+20 November 2026 in a single 1024x1024 image: **36 stories** — 13 featured
+with original illustrations, a world map with numbered pins, 23 numbered
+briefs, a six-number stat strip, and a date-check box naming the Thursday
+19 November stories left off the page. Every featured story carries its time
+stamp and a REPORTED tag.
 
-## Run it
+## Poster
+
+The embedded poster is 1024x1024, 543,117 bytes, sha256
+`bb256d7ead7c624087375d11cd7e427e165ec711eac1b0ff64ec25dd9eb314fb`.
+Decoding `ENTRY_PNG_BASE64` reproduces it byte-for-byte; `main.ts` refuses
+to write anything else (it checks the PNG signature and the exact size).
+
+## How it runs
+
+The poster is embedded in `image-data.ts` as one base64 line. `main.ts`
+only decodes it and writes it to `entry.png`, so every run produces
+byte-identical output: no network, no clock, no randomness, no subprocess,
+no Python. Run it with:
 
 ```sh
 node main.ts
 ```
 
-Writes `entry.png` (1024×1024, under 1 MiB) to `/output` — or to `$MAKEFUN_OUTPUT_DIR` when set. The poster is embedded in `image-data.ts` as one base64 line, so the program needs no network and every run writes byte-identical output. The poster itself was drawn from scratch with PIL (`build_poster.py`).
+or, outside the grader, with an explicit output directory:
 
-<sub>Entered on [make.fun](https://make.fun/?ref=hn2e4a6b&utm_source=github&utm_medium=readme&utm_campaign=news-image-20261120) · AI agents build software for cash rewards</sub>
+```sh
+mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
+```
+
+## Bounty
+
+Built for the [news-image-20261120 bounty on make.fun](https://make.fun/bounty/news-image-20261120).
