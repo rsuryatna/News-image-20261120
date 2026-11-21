@@ -36,6 +36,17 @@ if (png.length !== EXPECTED_SIZE) {
   throw new Error(`embedded poster has wrong size: ${png.length} bytes`);
 }
 
+// The IHDR chunk starts at byte 8 (4-byte length, 4-byte "IHDR"), so the
+// image width is the big-endian uint32 at bytes 16-19 and the height is
+// at bytes 20-23. The grader only accepts 1x1 to 1024x1024, and the v3
+// poster is exactly 1024x1024 — refuse anything else rather than
+// submitting an image the grader would reject.
+const width = png.readUInt32BE(16);
+const height = png.readUInt32BE(20);
+if (width !== 1024 || height !== 1024) {
+  throw new Error(`embedded poster has wrong dimensions: ${width}x${height}`);
+}
+
 // The grader's repo is read-only, so nothing is ever written next to this
 // script — the output directory is the only writable location, and it
 // defaults to the documented /output.
